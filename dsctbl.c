@@ -1,4 +1,5 @@
 #include "bootpack.h"
+
 void init_gdtidt(void)
 {
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) 0x00270000;
@@ -18,10 +19,17 @@ void init_gdtidt(void)
 	for (i = 0; i < 256; i++) {
 		set_gatedesc(idt + i, 0, 0, 0);
 	}
+	
 	load_idtr(0x7ff, 0x0026f800);
-
+	
+	
+	//设置键盘和鼠标
+	set_gatedesc(idt + 0x21, (int) asm_inthandler21, 2 * 8, AR_INTGATE32);
+	set_gatedesc(idt + 0x27, (int) asm_inthandler27, 2 * 8, AR_INTGATE32);
+	set_gatedesc(idt + 0x2c, (int) asm_inthandler2c, 2 * 8, AR_INTGATE32);
 	return;
 }
+//GDT
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar)// authority
 {
 	if (limit > 0xfffff) {
@@ -36,6 +44,7 @@ void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, i
 	sd->base_high    = (base >> 24) & 0xff;
 	return;
 }
+//IDT
 void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar)
 {
 	gd->offset_low   = offset & 0xffff;

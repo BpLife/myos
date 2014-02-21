@@ -11,7 +11,7 @@
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr
-
+		EXTERN	_inthandler21, _inthandler27, _inthandler2c
 [SECTION .text]
 
 _io_hlt:	; void io_hlt(void);
@@ -77,14 +77,63 @@ _io_store_eflags:	; void io_store_eflags(int eflags);
 		POPFD		; POP EFLAGS ‚Æ‚¢‚¤ˆÓ–¡
 		RET
 
-_load_gdtr:		; void load_gdtr(int limit, int addr);
+_load_gdtr:		; void load_gdtr(int limit, int addr);//GDTR  is 48 bit
 		MOV		AX,[ESP+4]		; limit
 		MOV		[ESP+6],AX
 		LGDT	[ESP+6]
 		RET
-
+_load_gdtr8: 	;void load_gdtr8(short limit,int addr);
+		LGDT	[ESP+4]
+		RET
 _load_idtr:		; void load_idtr(int limit, int addr);
 		MOV		AX,[ESP+4]		; limit
 		MOV		[ESP+6],AX
 		LIDT	[ESP+6]
 		RET
+_asm_inthandler21:
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler21
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+
+_asm_inthandler27:
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler27
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+
+_asm_inthandler2c:
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler2c
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
