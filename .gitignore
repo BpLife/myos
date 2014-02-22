@@ -1,1 +1,10 @@
 *.exe
+*.obj
+*.lst
+*.bin
+*.sys
+*.bat
+*.map
+*.bim
+*.hrb
+*.img

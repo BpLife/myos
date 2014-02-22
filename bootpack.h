@@ -1,3 +1,13 @@
+/* asmhead.nas */
+struct BOOTINFO { /* 0x0ff0-0x0fff */
+	char cyls; /* 僽乕僩僙僋僞偼偳偙傑偱僨傿僗僋傪撉傫偩偺偐 */
+	char leds; /* 僽乕僩帪偺僉乕儃乕僪偺LED偺忬懺 */
+	char vmode; /* 價僨僆儌乕僪  壗價僢僩僇儔乕偐 */
+	char reserve;
+	short scrnx, scrny; /* 夋柺夝憸搙 */
+	char *vram;
+};
+#define ADR_BOOTINFO	0x00000ff0
 
 /* naskfunc.nas */
 void io_hlt(void);
@@ -11,7 +21,7 @@ void load_idtr(int limit, int addr);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
-#define ADR_BOOTINFO	0x00000ff0
+
 
 /* graphic.c */
 void init_palette(void);
@@ -41,19 +51,6 @@ int pysize, int px0, int py0, char *buf, int bxsize);
 #define COL8_848484		15
 
 
-
-
-/* asmhead.nas */
-struct BOOTINFO { /* 0x0ff0-0x0fff */
-	char cyls; /* 僽乕僩僙僋僞偼偳偙傑偱僨傿僗僋傪撉傫偩偺偐 */
-	char leds; /* 僽乕僩帪偺僉乕儃乕僪偺LED偺忬懺 */
-	char vmode; /* 價僨僆儌乕僪  壗價僢僩僇儔乕偐 */
-	char reserve;
-	short scrnx, scrny; /* 夋柺夝憸搙 */
-	char *vram;
-};
-
-
 /* dsctbl.c */
 struct SEGMENT_DESCRIPTOR {
 	short limit_low, base_low;
@@ -70,6 +67,16 @@ void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, i
 void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
+#define ADR_IDT			0x0026f800
+#define LIMIT_IDT		0x000007ff
+#define ADR_GDT			0x00270000
+#define LIMIT_GDT		0x0000ffff
+#define ADR_BOTPAK		0x00280000
+#define LIMIT_BOTPAK	0x0007ffff
+#define AR_DATA32_RW	0x4092
+#define AR_CODE32_ER	0x409a
+#define AR_INTGATE32	0x008e
+
 
 /* int.c */
 void init_pic(void);
