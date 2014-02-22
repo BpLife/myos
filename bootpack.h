@@ -33,22 +33,22 @@ void putfonts8_asc(char *vram, int xsize, int x, int y, char c, unsigned char *s
 void init_mouse_cursor8(char *mouse, char bc);
 void putblock8_8(char *vram, int vxsize, int pxsize,
 int pysize, int px0, int py0, char *buf, int bxsize);
-#define COL8_000000		0
-#define COL8_FF0000		1
-#define COL8_00FF00		2
-#define COL8_FFFF00		3
-#define COL8_0000FF		4
-#define COL8_FF00FF		5
-#define COL8_00FFFF		6
-#define COL8_FFFFFF		7
-#define COL8_C6C6C6		8
-#define COL8_840000		9
-#define COL8_008400		10
-#define COL8_848400		11
-#define COL8_000084		12
-#define COL8_840084		13
-#define COL8_008484		14
-#define COL8_848484		15
+#define COL8_000000		0 	//黑
+#define COL8_FF0000		1	//亮红
+#define COL8_00FF00		2	//亮绿
+#define COL8_FFFF00		3	//亮黄
+#define COL8_0000FF		4	//亮蓝
+#define COL8_FF00FF		5	//亮紫
+#define COL8_00FFFF		6	//浅亮蓝
+#define COL8_FFFFFF		7	//白
+#define COL8_C6C6C6		8	//亮灰
+#define COL8_840000		9	//暗红
+#define COL8_008400		10	//暗绿
+#define COL8_848400		11	//暗黄
+#define COL8_000084		12	//暗蓝
+#define COL8_840084		13	//暗紫
+#define COL8_008484		14	//浅暗蓝
+#define COL8_848484		15	//暗灰
 
 
 /* dsctbl.c */
@@ -83,6 +83,8 @@ void init_pic(void);
 void inthandler21(int *esp);
 void inthandler27(int *esp);
 void inthandler2c(int *esp);
+
+
 #define PIC0_ICW1		0x0020
 #define PIC0_OCW2		0x0020
 #define PIC0_IMR		0x0021
@@ -95,3 +97,14 @@ void inthandler2c(int *esp);
 #define PIC1_ICW2		0x00a1
 #define PIC1_ICW3		0x00a1
 #define PIC1_ICW4		0x00a1
+
+//fifo.c
+/*FIFO 结构*/
+struct FIFO 
+{
+	unsigned char *buff;
+	int head,tail,size,free;
+};
+int fifo8_init(struct FIFO *fifo8,int buff);
+int fifo8_put(struct FIFO* fifo8,unsigned char c);
+unsigned char  fifo8_get(struct FIFO *fifo8);
