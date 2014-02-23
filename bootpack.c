@@ -3,6 +3,8 @@
 
 extern struct FIFO keyfifo;
 extern struct FIFO mousefifo;
+
+int mouse_decode(struct MOUSE_DEC* mousedec,unsigned char mousedata);
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) 0x0ff0;//the boot info saved in asmhead
@@ -11,7 +13,7 @@ void HariMain(void)
 	unsigned char keybuff[32],mousebuff[128];
 	unsigned char keydata;
 	unsigned char mousedata;
-	
+	struct MOUSE_DEC mousedec;
 	init_gdtidt();
 	init_pic();//init the programed interrupt controller.
 	io_sti(); // enable interrupt
@@ -36,7 +38,7 @@ void HariMain(void)
 	
 	//鼠标中断
 	init_keyboard();
-	enable_mouse();
+	enable_mouse(&mousedec);
 	
 	
 	
@@ -56,14 +58,87 @@ void HariMain(void)
 			else if(fifo8_status(&mousefifo)!=0){
 				mousedata=fifo8_get(&mousefifo);
 				io_sti();
-				sprintf(s, "%02X", mousedata);
-				boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 32, 16, 47, 31);
-				putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COL8_FFFFFF, s);
+				if(mouse_decode(&mousedec,mousedata)!=0){
+					sprintf(s, "[lcr %4d %4d]", mousedec.x, mousedec.y);
+					if ((mousedec.btn & 0x01) != 0) {
+						s[1] = 'L';
+					}
+					if ((mousedec.btn & 0x02) != 0) {
+						s[3] = 'R';
+					}
+					if ((mousedec.btn & 0x04) != 0) {
+						s[2] = 'C';
+					}
+					boxfill8(binfo->vram, binfo->scrnx, COL8_FF0000, 32, 16, 32+8*20, 31);
+					putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COL8_FFFFFF, s);
+					
+					/* 鼠标指针的移动 */
+					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, mx, my, mx + 15, my + 15); /* 隐藏鼠标 */
+					mx += mousedec.x;
+					my += mousedec.y;
+					if (mx < 0) {
+						mx = 0;
+					}
+					if (my < 0) {
+						my = 0;
+					}
+					if (mx > binfo->scrnx - 16) {
+						mx = binfo->scrnx - 16;
+					}
+					if (my > binfo->scrny - 16) {
+						my = binfo->scrny - 16;
+					}
+					sprintf(s, "(%3d, %3d)", mx, my);
+					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 0, 79, 15); /* 隐藏坐标 */
+					putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s); /* 显示坐标 */
+					putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16); /* 描绘鼠标 */
+				}
 			}
 		}
 	}
 }
+int mouse_decode(struct MOUSE_DEC* mousedec,unsigned char mousedata)
+{
 
+	int phase=mousedec->phase;
+	unsigned char *p=&mousedec->phase;
+	if(phase==0){
+		if(mousedata==0xfa)
+			*p=1;
+		return 0;
+	}
+	else if(phase==1){
+		if((mousedata&0xc8)==0x08){
+			//如果第一字正确
+			mousedec->buff[0]=mousedata;
+			*p=2;
+		}
+		return 0;
+	}
+	else if(phase==2){
+		mousedec->buff[1]=mousedata;
+		*p=3;
+		return 0;
+	}
+	else if(phase==3){
+		mousedec->buff[2]=mousedata;
+		*p=1;
+		
+		mousedec->btn=mousedec->buff[0]&0x07;//取低3位
+		mousedec->x=mousedec->buff[1];
+		mousedec->y=mousedec->buff[2];
+		
+		if ((mousedec->buff[0] & 0x10) != 0) {
+			mousedec->x |= 0xffffff00;
+		}
+		if ((mousedec->buff[0] & 0x20) != 0) {
+			mousedec->y |= 0xffffff00;
+		}
+		mousedec->y = - mousedec->y; /* 鼠标坐标与屏幕坐标相反 */
+		return 1;
+	}
+	return -1;
+}
 
 
 

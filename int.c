@@ -82,13 +82,14 @@ void init_keyboard(void)
 	io_out8(PORT_KEYDAT, KBC_MODE);
 	return;
 }
-void enable_mouse(void)
+void enable_mouse(struct MOUSE_DEC *mousedec)
 {
 	/* 激活鼠标 */
 	wait_KBC_sendready();
 	io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
 	wait_KBC_sendready();
 	io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+	mousedec->phase=0;
 	return; /* 顺利的话，键盘控制会返回ACK（0xfa） */
 }
 

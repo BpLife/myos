@@ -111,9 +111,17 @@ void inthandler2c(int *esp);
 
 #define KEYCMD_SENDTO_MOUSE		0xd4
 #define MOUSECMD_ENABLE			0xf4
+//鼠标移动
+struct MOUSE_DEC
+{
+	unsigned char buff[3],phase;
+	int x,y,btn;
+};
 
-void enable_mouse(void);
+void enable_mouse(struct MOUSE_DEC*);
 void init_keyboard(void);
+
+
 /**************************************************/
 //fifo.c
 /*FIFO 结构*/
