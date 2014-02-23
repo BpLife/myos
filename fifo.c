@@ -1,4 +1,6 @@
 #include "bootpack.h"
+
+
 int fifo8_init(struct FIFO *fifo8,int buff)
 {
 	fifo8->buff=(unsigned char *)buff;
@@ -32,5 +34,12 @@ unsigned char  fifo8_get(struct FIFO *fifo8)
 	if(fifo8->head==32)
 		fifo8->head=0;
 	return data;
+}
+int fifo8_status(struct FIFO* fifo8)
+{
+	if(fifo8->free==fifo8->size)//队列为空则返回0
+		return 0;
+	else
+		return 1;
 }
 /*************/
