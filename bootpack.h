@@ -133,3 +133,27 @@ struct FIFO
 int fifo8_init(struct FIFO *fifo8,int buff);
 int fifo8_put(struct FIFO* fifo8,unsigned char c);
 unsigned char  fifo8_get(struct FIFO *fifo8);
+
+
+
+//memory.c
+#define MEMMAN_FREES		4090	/* 大约是32KB */
+#define MEMMAN_ADDR			0x003c0000
+
+struct FREEINFO {	/* 可用信息 */
+	unsigned int addr, size;
+};
+
+struct MEMMAN {		/* 内存管理 */
+	int frees, maxfrees, lostsize, losts;
+	struct FREEINFO free[MEMMAN_FREES];
+};
+
+
+#define EFLAGS_AC_BIT		0x00040000
+#define CR0_CACHE_DISABLE	0x60000000
+unsigned int memtest(unsigned int start, unsigned int end);
+void memman_init(struct MEMMAN *man);
+unsigned int memman_total(struct MEMMAN *man);
+unsigned int memman_alloc(struct MEMMAN *man, unsigned int size);
+int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size);

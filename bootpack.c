@@ -14,9 +14,18 @@ void HariMain(void)
 	unsigned char keydata;
 	unsigned char mousedata;
 	struct MOUSE_DEC mousedec;
+	//内存管理
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	unsigned int memtotal;
+	
 	init_gdtidt();
 	init_pic();//init the programed interrupt controller.
 	io_sti(); // enable interrupt
+	
+	
+	
+	
+	
 	init_palette();
 	
 	init_screen8(binfo->vram, binfo->scrnx, binfo->scrny);
@@ -40,8 +49,15 @@ void HariMain(void)
 	init_keyboard();
 	enable_mouse(&mousedec);
 	
+	memtotal = memtest(0x00400000, 0xbfffffff);
+	memman_init(memman);
+	memman_free(memman, 0x00001000, 0x0009e000); /* 0x00001000 - 0x0009efff */
+	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 	
-	
+	sprintf(s, "memory %dMB   free : %dKB",
+			memtotal / (1024 * 1024), memman_total(memman) / 1024);
+	putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+
 	
 	for (;;) {
 		io_cli();
