@@ -61,15 +61,15 @@ void HariMain(void)
 	/*鼠标显示到内存中*/
 	init_mouse_cursor8(buf_mouse, 17);
 	/*显示背景色*/
-	sheet_slideSuper(shtctl, sht_back, 0, 0);
+	sheet_slideSuper( sht_back, 0, 0);
 	
 	/*显示鼠标图标*/
 	mx = (binfo->scrnx - 16) / 2; /* 中间位置 */
 	my = (binfo->scrny - 28 - 16) / 2;
-	sheet_slideSuper(shtctl, sht_mouse, mx, my);
+	sheet_slideSuper( sht_mouse, mx, my);
 	/*设置图层高度，并显示*/
-	sheet_updown(shtctl, sht_back,  0);
-	sheet_updown(shtctl, sht_mouse, 1);
+	sheet_updown(sht_back,  0);
+	sheet_updown( sht_mouse, 1);
 	
 	
 	
@@ -80,7 +80,7 @@ void HariMain(void)
 	sprintf(s, "memory %dMB   free : %dKB",
 			memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
-	sheet_refresh(shtctl, sht_back, 0, 0, binfo->scrnx, 48);
+	sheet_refresh( sht_back, 0, 0, binfo->scrnx, 48);
 	
 	for (;;) {
 		io_cli();
@@ -110,7 +110,7 @@ void HariMain(void)
 					}
 					boxfill8(buf_back, binfo->scrnx, COL8_FF0000, 32, 16, 32+8*20, 31);
 					putfonts8_asc(buf_back, binfo->scrnx, 32, 16, COL8_FFFFFF, s);
-					sheet_refresh(shtctl, sht_back, 32, 16, 32+8*20, 31);
+					sheet_refresh(sht_back, 32, 16, 32+8*20, 31);
 					/* 鼠标指针的移动 */
 					
 					mx += mousedec.x;
@@ -121,19 +121,19 @@ void HariMain(void)
 					if (my < 0) {
 						my = 0;
 					}
-					if (mx > binfo->scrnx - 16) {
-						mx = binfo->scrnx - 16;
+					if (mx > binfo->scrnx - 1) {
+						mx = binfo->scrnx - 1;
 					}
-					if (my > binfo->scrny - 16) {
-						my = binfo->scrny - 16;
+					if (my > binfo->scrny - 1) {
+						my = binfo->scrny - 1;
 					}
 					sprintf(s, "(%3d, %3d)", mx, my);
 					
 					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 79, 15); /* 隐藏坐标 */
 					putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s); /* 显示坐标 */
-					sheet_refresh(shtctl, sht_back, 0, 0, 80, 16);
+					sheet_refresh( sht_back, 0, 0, 80, 16);
 					//sheet_slide(shtctl, sht_mouse, mx, my); /* 描绘鼠标 */
-					sheet_slideSuper(shtctl, sht_mouse, mx, my); /* 快速描绘鼠标 */
+					sheet_slideSuper(sht_mouse, mx, my); /* 快速描绘鼠标 */
 				}
 			}
 		}
