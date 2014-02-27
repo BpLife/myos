@@ -21,7 +21,7 @@ void HariMain(void)
 	struct SHTCTL *shtctl;
 	struct SHEET *sht_back, *sht_mouse , *sht_win;
 	unsigned char *buf_back, buf_mouse[256],*buf_win;
-	
+	unsigned int count=0;
 	
 	init_gdtidt();
 	init_pic();//init the programed interrupt controller.
@@ -71,7 +71,7 @@ void HariMain(void)
 	sht_win   = sheet_alloc(shtctl);
 	buf_win   = (unsigned char *) memman_alloc_4k(memman, 160 * 68);
 	sheet_setbuf(sht_win, buf_win, 160, 68, -1); /* 没有透明色 */
-	make_window8(buf_win, 160, 68, "window");
+	make_window8(buf_win, 160, 68, "counter");
 	sheet_slideSuper(sht_win, 80, 72);
 
 	
@@ -94,9 +94,15 @@ void HariMain(void)
 	sheet_refresh( sht_back, 0, 0, binfo->scrnx, 48);
 	
 	for (;;) {
+		count++;
+		sprintf(s, "%010d", count);
+		boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
+		putfonts8_asc(buf_win, 160, 40, 28, COL8_000000, s);
+		sheet_refresh(sht_win, 40, 28, 120, 44);
+		
 		io_cli();
 		if(fifo8_status(&keyfifo) + fifo8_status(&mousefifo)==0)
-			io_stihlt();// 开中断然后睡眠
+			io_sti();
 		else{
 			if(fifo8_status(&keyfifo)!=0){
 				keydata=fifo8_get(&keyfifo);
