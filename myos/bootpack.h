@@ -18,6 +18,7 @@ int io_load_eflags(void);
 void io_store_eflags(int eflags);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
+void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
@@ -98,6 +99,7 @@ void inthandler2c(int *esp);
 #define PIC1_ICW3		0x00a1
 #define PIC1_ICW4		0x00a1
 
+
 /*为实现鼠标中断分两步。
 1.完成键盘控制电路的初始（鼠标控制电路在键盘控制电路里面）化正常工作。
 2.一个是鼠标本身*/
@@ -158,7 +160,7 @@ unsigned int memman_total(struct MEMMAN *man);
 unsigned int memman_alloc(struct MEMMAN *man, unsigned int size);
 int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size);
 unsigned int memman_alloc_4k(struct MEMMAN *man, unsigned int size);
-
+int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
 
 //sheet.c
 #define MAX_SHEETS		256//再次设定256个图层
@@ -169,7 +171,7 @@ struct SHEET {
 };
 
 struct SHTCTL {
-	unsigned char *vram;
+	unsigned char *vram,*map;
 	int xsize, ysize, top/*最上层图层的高度*/;
 	struct SHEET *sheets[MAX_SHEETS];
 	struct SHEET sheets0[MAX_SHEETS];
@@ -184,7 +186,8 @@ void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1);
 void sheet_slide(struct SHEET *sht, int vx0, int vy0);
 void sheet_free(struct SHEET *sht);
 void sheet_slideSuper( struct SHEET *sht, int vx0, int vy0);
-void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1);
+void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1,int h0,int h1);
+void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
 
 /*void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height);
 void sheet_refresh(struct SHTCTL *ctl, struct SHEET *sht, int bx0, int by0, int bx1, int by1);
@@ -193,3 +196,20 @@ void sheet_free(struct SHTCTL *ctl, struct SHEET *sht);
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1);
 void sheet_slideSuper(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0);
 */
+//timer.c
+#define MAX_TIMER 500
+struct TIMER{
+	unsigned int timeout,flag/*记录各个定时器的状态*/;
+	struct FIFO8* fifo;
+	unsigned char data;
+};
+struct TIMERCTL{
+	unsigned int count;
+	struct TIMER timer[MAX_TIMER];
+};
+void init_pit(void);
+void settimer(struct TIMER*,unsigned int ,struct FIFO8 *,unsigned char );
+struct TIMER * timer_alloc(void);
+
+
+
