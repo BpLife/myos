@@ -4,8 +4,16 @@
 
 
 
-struct FIFO keyfifo;
-struct FIFO mousefifo;
+
+
+struct FIFO32 *keyfifo;
+int keydata0;
+
+struct FIFO32 *mousefifo;
+int mousedata0;
+
+
+
 void init_pic(void)
 /* PIC偺弶婜壔 */
 {
@@ -38,21 +46,18 @@ void inthandler21(int *esp)
 	unsigned char keydata;
 	io_out8(PIC0_OCW2, 0x61);//IRQ-01 已受理完毕
 	keydata=io_in8(PORT_KEYDAT);
-	fifo8_put(&keyfifo,keydata);
+	fifo32_put(keyfifo,keydata+keydata0);
 	return ;
 }
 
 void inthandler2c(int *esp)
 /*鼠标 */
 {
-	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	boxfill8(binfo->vram, binfo->scrnx, COL8_000000, 0, 0, 32 * 8 - 1, 15);
-	putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, "INT 2C (IRQ-12) : PS/2 mouse");
 	unsigned char mousedata;
 	io_out8(PIC1_OCW2, 0x64);//pic1 IRQ-12 已受理完毕
 	io_out8(PIC0_OCW2, 0x62);//pic0 IRQ-02 已受理完毕
 	mousedata=io_in8(PORT_KEYDAT);
-	fifo8_put(&mousefifo,mousedata);
+	fifo32_put(mousefifo,mousedata+mousedata0);
 	return;
 	
 }
@@ -73,8 +78,11 @@ void wait_KBC_sendready(void)
 	}
 	return;
 }
-void init_keyboard(void)
+void init_keyboard(struct FIFO32 *fifo, int data0)
 {
+	//将FIFO缓冲区保存到全局变量里
+	keyfifo = fifo;
+	keydata0 = data0;
 	/* 初始化键盘控制电路 */
 	wait_KBC_sendready();
 	io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
@@ -82,14 +90,20 @@ void init_keyboard(void)
 	io_out8(PORT_KEYDAT, KBC_MODE);
 	return;
 }
-void enable_mouse(struct MOUSE_DEC *mousedec)
+
+
+void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec)
 {
-	/* 激活鼠标 */
+	//将FIFO缓冲区保存到全局变量里
+	mousefifo = fifo;
+	mousedata0 = data0;
+	/* 鼠标有效 */
 	wait_KBC_sendready();
 	io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
 	wait_KBC_sendready();
 	io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
-	mousedec->phase=0;
-	return; /* 顺利的话，键盘控制会返回ACK（0xfa） */
+	/* 发送ACK(0xfa)进行确认 */
+	mdec->phase = 0; /* 等待鼠标的oxfa阶段 */
+	return;
 }
 

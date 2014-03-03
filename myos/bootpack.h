@@ -113,28 +113,31 @@ void inthandler2c(int *esp);
 
 #define KEYCMD_SENDTO_MOUSE		0xd4
 #define MOUSECMD_ENABLE			0xf4
+
+
+
+//fifo.c
+/*FIFO 结构*/
+struct FIFO32 {
+	int *buf;
+	int p, q, size, free, flags;
+};
+void fifo32_init(struct FIFO32 *fifo, int size, int *buf);
+int fifo32_put(struct FIFO32 *fifo, int data);
+int fifo32_get(struct FIFO32 *fifo);
+int fifo32_status(struct FIFO32 *fifo);
 //鼠标移动
 struct MOUSE_DEC
 {
 	unsigned char buff[3],phase;
 	int x,y,btn;
 };
+void init_keyboard(struct FIFO32 *fifo, int data0);
 
-void enable_mouse(struct MOUSE_DEC*);
-void init_keyboard(void);
-
+void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec);
 
 /**************************************************/
-//fifo.c
-/*FIFO 结构*/
-struct FIFO 
-{
-	unsigned char *buff;
-	int head,tail,size,free;
-};
-int fifo8_init(struct FIFO *fifo8,int buff);
-int fifo8_put(struct FIFO* fifo8,unsigned char c);
-unsigned char  fifo8_get(struct FIFO *fifo8);
+
 
 
 
@@ -185,7 +188,7 @@ void sheet_updown(struct SHEET *sht, int height);
 void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1);
 void sheet_slide(struct SHEET *sht, int vx0, int vy0);
 void sheet_free(struct SHEET *sht);
-void sheet_slideSuper( struct SHEET *sht, int vx0, int vy0);
+void sheet_slide( struct SHEET *sht, int vx0, int vy0);
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1,int h0,int h1);
 void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
 
@@ -198,18 +201,24 @@ void sheet_slideSuper(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0);
 */
 //timer.c
 #define MAX_TIMER 500
-struct TIMER{
-	unsigned int timeout,flag/*记录各个定时器的状态*/;
-	struct FIFO8* fifo;
+
+struct TIMER {
+	struct TIMER *next_timer;
+	unsigned int timeout, flags/*记录各个定时器的状态*/;
+	struct FIFO32 *fifo;
 	unsigned char data;
 };
-struct TIMERCTL{
-	unsigned int count;
-	struct TIMER timer[MAX_TIMER];
+struct TIMERCTL {
+	unsigned int count, next_time, using;
+	struct TIMER *t0;
+	struct TIMER timers0[MAX_TIMER];
 };
+
+extern struct TIMERCTL timerctl;
 void init_pit(void);
-void settimer(struct TIMER*,unsigned int ,struct FIFO8 *,unsigned char );
-struct TIMER * timer_alloc(void);
-
-
+struct TIMER *timer_alloc(void);
+void timer_free(struct TIMER *timer);
+void timer_init(struct TIMER *timer, struct FIFO32 *fifo, unsigned char data);
+void timer_settime(struct TIMER *timer, unsigned int timeout);
+void inthandler20(int *esp);
 

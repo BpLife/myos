@@ -97,7 +97,7 @@ void putfonts8_asc(char *vram, int xsize, int x, int y, char c, unsigned char *s
 	return;
 }
 void init_mouse_cursor8(char *mouse, char bc)
-/* ƒ}ƒEƒXƒJ[ƒ\ƒ‹‚ğ€”õi16x16j */
+/* Êó±ê16x16 */
 {
 	static char cursor[16][16] = {
 		"**************..",

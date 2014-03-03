@@ -1,45 +1,55 @@
 #include "bootpack.h"
 
 
-int fifo8_init(struct FIFO *fifo8,int buff)
+#define FLAGS_OVERRUN 1
+void fifo32_init(struct FIFO32 *fifo, int size, int *buf)
+/* FIFO初始化 */
 {
-	fifo8->buff=(unsigned char *)buff;
-	fifo8->size=32;
-	fifo8->free=32;
-	fifo8->head=fifo8->tail=0;
-	return 1;
+	fifo->size = size;
+	fifo->buf = buf;
+	fifo->free = size; /* 空 */
+	fifo->flags = 0;
+	fifo->p = 0; /* 写入位置 */
+	fifo->q = 0; /* 读取位置 */
+	return;
 }
 
-int fifo8_put(struct FIFO* fifo8,unsigned char c)
+int fifo32_put(struct FIFO32 *fifo, int data)
+/* 给FIFO发送数据并储存在FIFO */
 {
-	if(fifo8->free==0){
-			return -1;
+	if (fifo->free == 0) {
+		/* 溢出 */
+		fifo->flags |= FLAGS_OVERRUN;
+		return -1;
 	}
-	fifo8->free--;
-	fifo8->buff[fifo8->tail]=c;
-	fifo8->tail++;
-	if(fifo8->tail==32)
-		fifo8->tail=0;
-	return 1;
+	fifo->buf[fifo->p] = data;
+	fifo->p++;
+	if (fifo->p == fifo->size) {
+		fifo->p = 0;
+	}
+	fifo->free--;
+	return 0;
 }
-unsigned char  fifo8_get(struct FIFO *fifo8)
+
+int fifo32_get(struct FIFO32 *fifo)
+
 {
-	unsigned char data;
-	if(fifo8->free==fifo8->size)	
-		return -1;//为空
-	fifo8->free++;
-	
-    data=fifo8->buff[fifo8->head];
-	fifo8->head++;
-	if(fifo8->head==32)
-		fifo8->head=0;
+	int data;
+	if (fifo->free == fifo->size) {
+		/* 空队列 */
+		return -1;
+	}
+	data = fifo->buf[fifo->q];
+	fifo->q++;
+	if (fifo->q == fifo->size) {
+		fifo->q = 0;
+	}
+	fifo->free++;
 	return data;
 }
-int fifo8_status(struct FIFO* fifo8)
+
+int fifo32_status(struct FIFO32 *fifo)
+/*  */
 {
-	if(fifo8->free==fifo8->size)//队列为空则返回0
-		return 0;
-	else
-		return 1;
+	return fifo->size - fifo->free;
 }
-/*************/

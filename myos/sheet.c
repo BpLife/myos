@@ -1,6 +1,8 @@
 #include "bootpack.h"
 
 #define SHEET_USE		1
+
+
 void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0)
 {
 	int h, bx, by, vx, vy, bx0, by0, bx1, by1;
@@ -141,28 +143,8 @@ void sheet_updown( struct SHEET *sht, int height)
 	}
 	return;
 }
-/*void sheet_refresh(struct SHTCTL *ctl)
-{
-	int h, bx, by, vx, vy;
-	unsigned char *buf, c, *vram = ctl->vram;
-	struct SHEET *sht;
-	for (h = 0; h <= ctl->top; h++) {
-		sht = ctl->sheets[h];
-		buf = sht->buf;
-		for (by = 0; by < sht->bysize; by++) {
-			vy = sht->vy0 + by;
-			for (bx = 0; bx < sht->bxsize; bx++) {
-				vx = sht->vx0 + bx;
-				c = buf[by * sht->bxsize + bx];
-				if (c != sht->col_inv图层背景色和图层颜色不同时绘制) {
-					vram[vy * ctl->xsize + vx] = c;
-				}
-			}
-		}
-	}
-	return;
-}
-*/
+
+
 /*以缓冲区相对坐标来刷新，用于快速显示文字*/
 void sheet_refresh( struct SHEET *sht, int bx0, int by0, int bx1, int by1)
 {
@@ -171,17 +153,8 @@ void sheet_refresh( struct SHEET *sht, int bx0, int by0, int bx1, int by1)
 	}
 	return;
 }
-/*void sheet_slide(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0)
-{
-	sht->vx0 = vx0;
-	sht->vy0 = vy0;
-	if (sht->height >= 0) { /* 如果正在显示 
-		sheet_refresh(ctl); /* 重新绘制图层 
-	}
-	return;
-}
-*/
-void sheet_slideSuper( struct SHEET *sht, int vx0, int vy0)
+
+void sheet_slide( struct SHEET *sht, int vx0, int vy0)
 {
 	int old_vx0 = sht->vx0, old_vy0 = sht->vy0;
 	struct SHTCTL *ctl = sht->ctl;
