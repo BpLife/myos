@@ -10,10 +10,11 @@
 		GLOBAL	_io_in8,  _io_in16,  _io_in32
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
-		GLOBAL	_load_gdtr, _load_idtr
+		GLOBAL	_load_gdtr, _load_idtr,_load_tr
 		GLOBAL	_load_cr0, _store_cr0
 		GLOBAL	_memtest_sub
 		GLOBAL	_asm_inthandler20,_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
+		GLOBAL	_taskswitch4,_taskswitch3,_farjmp
 		EXTERN	_inthandler20,_inthandler21, _inthandler27, _inthandler2c
 [SECTION .text]
 
@@ -93,6 +94,9 @@ _load_idtr:		; void load_idtr(int limit, int addr);
 		MOV		[ESP+6],AX
 		LIDT	[ESP+6]
 		RET
+_load_tr:		;void load_tr(int tr);
+		LTR		[esp+4]
+		RET
 _asm_inthandler21:
 		PUSH	ES
 		PUSH	DS
@@ -149,7 +153,16 @@ _store_cr0:		; void store_cr0(int cr0);
 		MOV		EAX,[ESP+4]
 		MOV		CR0,EAX
 		RET
+_taskswitch4:
+		JMP		4*8:0
+		RET
+_taskswitch3:
+		JMP 	3*8:0
+		RET
 		
+_farjmp:		; void farjmp(int eip,int cs)
+		JMP FAR [ESP+4]
+		RET
 _memtest_sub:	; unsigned int memtest_sub(unsigned int start, unsigned int end)
 		PUSH	EDI						; ÅiEBX, ESI, EDI Ç‡égÇ¢ÇΩÇ¢ÇÃÇ≈Åj
 		PUSH	ESI

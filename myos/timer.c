@@ -12,6 +12,7 @@ struct TIMERCTL timerctl;
 	struct FIFO8* fifo;
 	unsigned char data;
 };*/
+extern struct TIMER *mt_timer;
 void init_pit(void){
 
 	int i;
@@ -58,6 +59,7 @@ void timer_init(struct TIMER *timer, struct FIFO32 *fifo, unsigned char data)
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
 	int e, i, j;
+	
 	struct TIMER * t,*s;
 	timer->timeout = timeout + timerctl.count;
 	timer->flags = TIMER_FLAGS_USING;
@@ -94,6 +96,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 
 void inthandler20(int*esp){
 	int i=0,j;
+	char ts = 0;
 	io_out8(PIC0_OCW2,0x60);//把IRQ-00 信号接收完了的信息通知给PiC*/
 	
 	struct TIMER *timer;
@@ -109,12 +112,19 @@ void inthandler20(int*esp){
 		if(timer->timeout>timerctl.count)
 			break;
 		timer->flags=TIMER_FLAGS_ALLOC;
-		fifo32_put(timer->fifo,timer->data);
+		if(timer != mt_timer){
+			fifo32_put(timer->fifo,timer->data);
+		}else{
+			ts=1;
+		}
 		timer=timer->next_timer;
 	}
 	
 	
 	timerctl.t0=timer;
 	timerctl.next_time = timer->timeout;
+	if (ts != 0){
+		mt_taskswitch();
+	}
 	return;
 }

@@ -7,6 +7,15 @@ extern struct FIFO32 mousefifo;
 int mouse_decode(struct MOUSE_DEC* mousedec,unsigned char mousedata);
 void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
+
+void task_b_main(struct SHEET *sht_back);
+
+struct TSS32 {
+	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;//与任务设置相关的信息，在执行任务切换的时候这些成员不会被写入（backlink除外）
+	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
+	int es, cs, ss, ds, fs, gs;
+	int ldtr, iomap;//执行任务时不会被写入
+};
 void HariMain(void)
 {
 	static char keytable[0x54] = {
@@ -22,7 +31,7 @@ void HariMain(void)
 	int i,mx, my;//the position of cursor
 	
 	struct FIFO32 fifo;
-	int fifobuf[128];
+	int fifobuf[128],task_b_esp;
 	
 	//timer
 	struct TIMER *timer, *timer2, *timer3;
@@ -48,6 +57,13 @@ void HariMain(void)
 	struct SHEET *sht_back, *sht_mouse , *sht_win;
 	unsigned char *buf_back, buf_mouse[256],*buf_win;
 	unsigned int count=0;
+	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
+	
+	//task
+	struct TSS32 tss_a, tss_b;
+	
+	
+
 	
 	init_gdtidt();
 	init_pic();//init the programed interrupt controller.
@@ -117,7 +133,7 @@ void HariMain(void)
 	//timer 
 	timer = timer_alloc();
 	timer_init(timer, &fifo, 10);
-	timer_settime(timer, 1000);
+	timer_settime(timer, 2);
 	
 	timer2 = timer_alloc();
 	timer_init(timer2, &fifo, 3);
@@ -142,6 +158,37 @@ void HariMain(void)
 	
 	
 	
+	
+	tss_a.ldtr = 0;
+	tss_a.iomap = 0x40000000;
+	tss_b.ldtr = 0;
+	tss_b.iomap = 0x40000000;
+	
+	//在gdt中定义
+	set_segmdesc(gdt + 3, 103, (int) &tss_a, AR_TSS32);
+	set_segmdesc(gdt + 4, 103, (int) &tss_b, AR_TSS32);
+	load_tr(3 * 8); //此段就是当前任务
+	
+	task_b_esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
+	*((int *) (task_b_esp + 4)) = (int) sht_back;
+	tss_b.eip = (int) &task_b_main;
+	tss_b.eflags = 0x00000202; /* IF = 1; */
+	tss_b.eax = 0;
+	tss_b.ecx = 0;
+	tss_b.edx = 0;
+	tss_b.ebx = 0;
+	tss_b.esp = task_b_esp;
+	tss_b.ebp = 0;
+	tss_b.esi = 0;
+	tss_b.edi = 0;
+	tss_b.es = 1 * 8;
+	tss_b.cs = 2 * 8;
+	tss_b.ss = 1 * 8;
+	tss_b.ds = 1 * 8;
+	tss_b.fs = 1 * 8;
+	tss_b.gs = 1 * 8;
+
+	mt_init();
 	for (;;) {
 		count++;
 		io_cli();
@@ -212,7 +259,7 @@ void HariMain(void)
 			}
 			 else if (i == 10) { /* 10s */
 				putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);
-				sprintf(s, "%010d", count);
+				
 				
 			} else if (i == 3) { /* 3s */
 				putfonts8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]", 6);
@@ -350,6 +397,43 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c)
 	boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x1 + 1, y0 - 2, x1 + 1, y1 + 1);
 	boxfill8(sht->buf, sht->bxsize, c,           x0 - 1, y0 - 1, x1 + 0, y1 + 0);
 	return;
+}
+
+void task_b_main(struct SHEET *sht_back)
+{
+	struct FIFO32 fifo;
+	struct TIMER *timer_put, *timer_1s;
+	int i, fifobuf[128], count = 0, count0 = 0;
+	char s[12];
+
+	fifo32_init(&fifo, 128, fifobuf);
+	timer_put = timer_alloc();
+	timer_init(timer_put, &fifo, 1);
+	timer_settime(timer_put, 1);
+	timer_1s = timer_alloc();
+	timer_init(timer_1s, &fifo, 100);
+	timer_settime(timer_1s, 100);
+
+	for (;;) {
+		count++;
+		io_cli();
+		if (fifo32_status(&fifo) == 0) {
+			io_sti();
+		} else {
+			i = fifo32_get(&fifo);
+			io_sti();
+			if (i == 1) {
+				sprintf(s, "%11d", count);
+				putfonts8_asc_sht(sht_back, 0, 144, COL8_FFFFFF, COL8_008484, s, 11);
+				timer_settime(timer_put, 1);
+			} else if (i == 100) {
+				sprintf(s, "%11d", count - count0);
+				putfonts8_asc_sht(sht_back, 0, 128, COL8_FFFFFF, COL8_008484, s, 11);
+				count0 = count;
+				timer_settime(timer_1s, 100);
+			}
+		}
+	}
 }
 
 
