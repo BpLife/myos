@@ -1,8 +1,5 @@
 #include <stdio.h>
 #include"bootpack.h"
-
-
-
 int mouse_decode(struct MOUSE_DEC* mousedec,unsigned char mousedata);
 void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
@@ -11,8 +8,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 void task_b_main(struct SHEET *sht_back);
 
 
-extern struct FIFO32 keyfifo;
-extern struct FIFO32 mousefifo;
+
 
 void HariMain(void)
 {
@@ -64,6 +60,7 @@ void HariMain(void)
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);//对图层管理结构体的初始化
 	task_a = task_init(memman);
 	fifo.task = task_a;
+	task_run(task_a,1,0);
 
 
 	/* sht_back */
@@ -101,7 +98,7 @@ void HariMain(void)
 		task_b[i]->tss.fs = 1 * 8;
 		task_b[i]->tss.gs = 1 * 8;
 		*((int *) (task_b[i]->tss.esp + 4)) = (int) sht_win_b[i];
-		task_run(task_b[i],i+1);
+		task_run(task_b[i],2,i+1);
 	}
 	
 	/* sht_win */
@@ -142,7 +139,7 @@ void HariMain(void)
 	for (;;) {
 		io_cli();
 		if (fifo32_status(&fifo) == 0) {
-			task_sleep(task_a);
+			//task_sleep(task_a);
 			io_sti();
 		} 
 		else{
@@ -273,10 +270,6 @@ int mouse_decode(struct MOUSE_DEC* mousedec,unsigned char mousedata)
 	return -1;
 }
 
-
-/*
-	
-*/
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c)
 {
 	int x1 = x0 + sx, y1 = y0 + sy;
@@ -378,6 +371,3 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 	}
 	return;
 }
-
-
-
