@@ -12,7 +12,7 @@ struct TIMERCTL timerctl;
 	struct FIFO8* fifo;
 	unsigned char data;
 };*/
-extern struct TIMER *mt_timer;
+
 void init_pit(void){
 
 	int i;
@@ -112,19 +112,54 @@ void inthandler20(int*esp){
 		if(timer->timeout>timerctl.count)
 			break;
 		timer->flags=TIMER_FLAGS_ALLOC;
-		if(timer != mt_timer){
+		if(timer != task_timer){
 			fifo32_put(timer->fifo,timer->data);
 		}else{
-			ts=1;
+			ts = 1;
 		}
-		timer=timer->next_timer;
+		timer = timer->next_timer;
 	}
 	
 	
 	timerctl.t0=timer;
 	timerctl.next_time = timer->timeout;
 	if (ts != 0){
-		mt_taskswitch();
+		task_switch();
+	}
+	return;
+}
+void task_sleep(struct TASK *task)
+{
+	int i;
+	char ts = 0;
+	if (task->flags == 2) {		/* 如果指定的任务处于唤醒状态 */
+		if (task == taskctl->tasks[taskctl->now]) {
+			ts = 1; /*  */
+		}
+		/* task偑偳偙偵偄傞偐傪扵偡 */
+		for (i = 0; i < taskctl->running; i++) {
+			if (taskctl->tasks[i] == task) {
+				/* 在这里 */
+				break;
+			}
+		}
+		taskctl->running--;
+		if (i < taskctl->now) {
+			taskctl->now--; /*  */
+		}
+		/* 左移 */
+		for (; i < taskctl->running; i++) {
+			taskctl->tasks[i] = taskctl->tasks[i + 1];
+		}
+		task->flags = 1; /* 不工作的状态 */
+		if (ts != 0) {
+			/* 任务切换，前提是自己睡眠自己 */
+			if (taskctl->now >= taskctl->running) {
+				/* now出现异常进行修正 */
+				taskctl->now = 0;
+			}
+			farjmp(0, taskctl->tasks[taskctl->now]->sel);
+		}
 	}
 	return;
 }

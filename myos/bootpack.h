@@ -9,6 +9,10 @@ struct BOOTINFO { /* 0x0ff0-0x0fff */
 };
 #define ADR_BOOTINFO	0x00000ff0
 
+
+
+
+
 /* naskfunc.nas */
 void io_hlt(void);
 void io_cli(void);
@@ -117,27 +121,6 @@ void inthandler2c(int *esp);
 
 
 
-//fifo.c
-/*FIFO 结构*/
-struct FIFO32 {
-	int *buf;
-	int p, q, size, free, flags;
-};
-void fifo32_init(struct FIFO32 *fifo, int size, int *buf);
-int fifo32_put(struct FIFO32 *fifo, int data);
-int fifo32_get(struct FIFO32 *fifo);
-int fifo32_status(struct FIFO32 *fifo);
-//鼠标移动
-struct MOUSE_DEC
-{
-	unsigned char buff[3],phase;
-	int x,y,btn;
-};
-void init_keyboard(struct FIFO32 *fifo, int data0);
-
-void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec);
-
-/**************************************************/
 
 
 
@@ -165,6 +148,35 @@ unsigned int memman_alloc(struct MEMMAN *man, unsigned int size);
 int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size);
 unsigned int memman_alloc_4k(struct MEMMAN *man, unsigned int size);
 int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
+
+
+
+
+
+//fifo.c
+/*FIFO 结构*/
+struct FIFO32 {
+	int *buf;
+	int p, q, size, free, flags;
+	struct TASK * task;
+};
+void fifo32_init(struct FIFO32 *fifo, int size, int *buf,struct TASK * task);
+int fifo32_put(struct FIFO32 *fifo, int data);
+int fifo32_get(struct FIFO32 *fifo);
+int fifo32_status(struct FIFO32 *fifo);
+//鼠标移动
+struct MOUSE_DEC
+{
+	unsigned char buff[3],phase;
+	int x,y,btn;
+};
+void init_keyboard(struct FIFO32 *fifo, int data0);
+
+void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec);
+
+/**************************************************/
+
+
 
 //sheet.c
 #define MAX_SHEETS		256//再次设定256个图层
@@ -224,5 +236,34 @@ void timer_settime(struct TIMER *timer, unsigned int timeout);
 void inthandler20(int *esp);
 
 //mtask
-void mt_init(void);
-void mt_taskswitch(void);
+
+#define MAX_TASKS		1000	/* 最大任务数量 */
+#define TASK_GDT0		3		/* 定义从GDT的几号开始 */
+struct TSS32 {
+	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
+	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
+	int es, cs, ss, ds, fs, gs;
+	int ldtr, iomap;
+};
+
+struct TASK {
+	int sel, flags; /* sel用来存放GDT的编号 */
+	int priority;
+	struct TSS32 tss;
+};
+
+struct TASKCTL {
+	int running; /* 正在运行的任务数量 */
+	int now; /* 用来记录当前正在运行的哪个任务 */
+	struct TASK *tasks[MAX_TASKS];
+	struct TASK tasks0[MAX_TASKS];
+};
+extern struct TIMER *task_timer;
+extern struct TASKCTL *taskctl;
+
+struct TASK *task_init(struct MEMMAN *memman);
+struct TASK *task_alloc(void);
+void task_run(struct TASK *task,int);
+void task_switch(void);
+
+
