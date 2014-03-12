@@ -277,3 +277,4 @@ void task_sleep(struct TASK *task);
 struct TASK *task_now(void);
 void task_switchsub(void);
 void task_remove(struct TASK *task);
+void task_idle(void);
