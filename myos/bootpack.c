@@ -161,7 +161,7 @@ void HariMain(void)
 	for (;;) {
 		io_cli();
 		if (fifo32_status(&fifo) == 0) {
-			//task_sleep(task_a);
+			task_sleep(task_a);
 			io_sti();
 		} 
 		else{
@@ -170,19 +170,29 @@ void HariMain(void)
 			if (256 <= i && i <= 511) { /*键盘数据 */
 				sprintf(s, "%02X", i - 256);
 				putfonts8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, s, 2);
-				if (i < 256 + 0x54) {
-					if (keytable[i - 256] != 0 && cursor_x < 144) {
-						s[0] = keytable[i - 256];
-						s[1] = 0;
-						putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s, 1);
-						cursor_x += 8;
-						
+				if (i < 0x54 + 256 && keytable[i - 256] != 0) { /* 一般字符 */
+					if (key_to == 0) {	/* 发送给任务A */
+						if (cursor_x < 128) {
+							/* 显示一个字符后光标移位 */
+							s[0] = keytable[i - 256];
+							s[1] = 0;
+							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s, 1);
+							cursor_x += 8;
+						}
+					} else {	/* 发送给命令行窗口 */
+						fifo32_put(&task_cons->fifo, keytable[i - 256] + 256);
 					}
 				}
-				if (i == 256 + 0x0e && cursor_x > 8) { /* 退格键 */
-					/* 用空格键把光标消去后，后移1次光标 */
-					putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ", 1);
-					cursor_x -= 8;
+				if (i == 256 + 0x0e) {	/* 退格键 */
+					if (key_to == 0) {	/* 发送给任务A */
+						if (cursor_x > 8) {
+							/* 用白色擦出光标后将光标前移移位*/
+							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ", 1);
+							cursor_x -= 8;
+						}
+					} else {	/* 发送给命令窗口 */
+						fifo32_put(&task_cons->fifo, 8 + 256);
+					}
 				}
 				if (i == 256 + 0x0f) { /* Tab */
 					if (key_to == 0) {
@@ -198,9 +208,9 @@ void HariMain(void)
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
 				}
 				
+			
 				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
-					
+				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);	
 			} else if (512 <= i && i <= 767) { /* 鼠标数据 */
 				if (mouse_decode(&mdec, i - 512) != 0) {
 					/* 已收集了3字节数据，所以显示出来 */
@@ -412,39 +422,62 @@ void make_wtitle8(unsigned char *buf, int xsize, char *title, char act)
 	}
 	return;
 }
+
 void console_task(struct SHEET *sheet)
 {
-	struct FIFO32 fifo;
 	struct TIMER *timer;
 	struct TASK *task = task_now();
+	int i, fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
+	char s[2];
 
-	int i, fifobuf[128], cursor_x = 8, cursor_c = COL8_000000;
-	fifo32_init(&fifo, 128, fifobuf, task);
-
+	fifo32_init(&task->fifo, 128, fifobuf, task);
 	timer = timer_alloc();
-	timer_init(timer, &fifo, 1);
+	timer_init(timer, &task->fifo, 1);
 	timer_settime(timer, 50);
+
+	/* 显示字符 */
+	putfonts8_asc_sht(sheet, 8, 28, COL8_FFFFFF, COL8_000000, ">", 1);
 
 	for (;;) {
 		io_cli();
-		if (fifo32_status(&fifo) == 0) {
+		if (fifo32_status(&task->fifo) == 0) {
 			task_sleep(task);
 			io_sti();
 		} else {
-			i = fifo32_get(&fifo);
+			i = fifo32_get(&task->fifo);
 			io_sti();
-			if (i <= 1) { /* 僇乕僜儖梡僞僀儅 */
+			if (i <= 1) { /* 光标用定时器 */
 				if (i != 0) {
-					timer_init(timer, &fifo, 0); /* 師偼0傪 */
+					timer_init(timer, &task->fifo, 0); /* 接下来置0 */
 					cursor_c = COL8_FFFFFF;
 				} else {
-					timer_init(timer, &fifo, 1); /* 師偼1傪 */
+					timer_init(timer, &task->fifo, 1); /* 接下来置1 */
 					cursor_c = COL8_000000;
 				}
 				timer_settime(timer, 50);
-				boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-				sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 			}
+			if (256 <= i && i <= 511) { /* 键盘数据 */
+				if (i == 8 + 256) {
+					/* 退格键 */
+					if (cursor_x > 16) {
+						/* 用空白擦出光标后将光标前移1位 */
+						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, " ", 1);
+						cursor_x -= 8;
+					}
+				} else {
+					/* 一般字符 */
+					if (cursor_x < 240) {
+						/* 显示一个字符后将光标后移位 */
+						s[0] = i - 256;
+						s[1] = 0;
+						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, s, 1);
+						cursor_x += 8;
+					}
+				}
+			}
+			/* 重新显示光标 */
+			boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+			sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 		}
 	}
 }
