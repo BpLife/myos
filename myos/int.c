@@ -39,9 +39,7 @@ void init_pic(void)
 void inthandler21(int *esp)
 /* 键盘 */
 {
-	//struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	//boxfill8(binfo->vram, binfo->scrnx, COL8_000000, 0, 0, 32 * 8 - 1, 15);
-	//putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, "INT 21 (IRQ-1) : PS/2 keyboard");
+	
 	
 	unsigned char keydata;
 	io_out8(PIC0_OCW2, 0x61);//IRQ-01 已受理完毕
