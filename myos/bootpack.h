@@ -1,15 +1,15 @@
 /* asmhead.nas */
 struct BOOTINFO { /* 0x0ff0-0x0fff */
-	char cyls; /* 僽乕僩僙僋僞偼偳偙傑偱僨傿僗僋傪撉傫偩偺偐 */
-	char leds; /* 僽乕僩帪偺僉乕儃乕僪偺LED偺忬懺 */
-	char vmode; /* 價僨僆儌乕僪  壗價僢僩僇儔乕偐 */
+	char cyls; 
+	char leds; 
+	char vmode;
 	char reserve;
-	short scrnx, scrny; /* 夋柺夝憸搙 */
+	short scrnx, scrny; 
 	char *vram;
 };
 #define ADR_BOOTINFO	0x00000ff0
 
-
+#define ADR_DISKIMG		0x00100000
 
 
 
