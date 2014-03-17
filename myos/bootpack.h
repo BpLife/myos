@@ -26,8 +26,8 @@ void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
-
-
+void asm_cons_putchar(void);
+void asm_hrb_api();
 /* graphic.c */
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
@@ -89,6 +89,7 @@ void init_pic(void);
 void inthandler21(int *esp);
 void inthandler27(int *esp);
 void inthandler2c(int *esp);
+
 
 
 #define PIC0_ICW1		0x0020
@@ -311,3 +312,6 @@ void cmd_cls(struct CONSOLE *cons);
 void cmd_dir(struct CONSOLE *cons);
 void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline);
 void cmd_hlt(struct CONSOLE *cons, int *fat);
+
+void cons_putstr1(struct CONSOLE *cons, char *s, int l);
+void cons_putstr0(struct CONSOLE *cons, char *s);

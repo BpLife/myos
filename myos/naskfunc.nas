@@ -5,7 +5,7 @@
 [INSTRSET "i486p"]				; 486偺柦椷傑偱巊偄偨偄偲偄偆婰弎
 [BITS 32]						; 32價僢僩儌乕僪梡偺婡夿岅傪嶌傜偣傞
 [FILE "naskfunc.nas"]			; 僜乕僗僼傽僀儖柤忣曬
-
+		GLOBAL	_asm_cons_putchar,_asm_hrb_api
 		GLOBAL	_io_hlt, _io_cli, _io_sti, _io_stihlt
 		GLOBAL	_io_in8,  _io_in16,  _io_in32
 		GLOBAL	_io_out8, _io_out16, _io_out32
@@ -15,9 +15,26 @@
 		GLOBAL	_memtest_sub
 		GLOBAL	_asm_inthandler20,_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
 		GLOBAL	_taskswitch4,_taskswitch3,_farjmp
+		GLOBAL  _farcall
 		EXTERN	_inthandler20,_inthandler21, _inthandler27, _inthandler2c
+		EXTERN	_cons_putchar
+		EXTERN	_hrb_api
 [SECTION .text]
 
+_asm_cons_putchar:
+		STI
+		PUSHAD
+		PUSH	1
+		AND		EAX,0xff	; AH和EAX的高位置0，将EAX置为已存入字符编码的状态
+		PUSH	EAX
+		PUSH	DWORD [0x0fec]	; cons的地址
+		CALL	_cons_putchar
+		ADD		ESP,12		;	
+		POPAD
+		IRETD
+_farcall:
+		CALL FAR [ESP+4]
+		RET
 _io_hlt:	; void io_hlt(void);
 		HLT
 		RET
@@ -210,4 +227,11 @@ _asm_inthandler20:  ;timer
 	POP DS
 	POP ES
 	IRETD
-
+_asm_hrb_api:
+		STI
+		PUSHAD	; 用于寄存器保存
+		PUSHAD	; 用于向hrb_api传值得参数 
+		CALL	_hrb_api
+		ADD		ESP,32
+		POPAD
+		IRETD
