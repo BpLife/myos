@@ -27,7 +27,8 @@ void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
 void asm_cons_putchar(void);
-void asm_hrb_api();
+void asm_hrb_api(void);
+void asm_inthandler0d(void);
 /* graphic.c */
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
@@ -311,7 +312,7 @@ void cmd_mem(struct CONSOLE *cons, unsigned int memtotal);
 void cmd_cls(struct CONSOLE *cons);
 void cmd_dir(struct CONSOLE *cons);
 void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline);
-void cmd_hlt(struct CONSOLE *cons, int *fat);
+
 
 void cons_putstr1(struct CONSOLE *cons, char *s, int l);
 void cons_putstr0(struct CONSOLE *cons, char *s);

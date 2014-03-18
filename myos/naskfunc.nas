@@ -11,14 +11,15 @@
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr,_load_tr
-		GLOBAL	_load_cr0, _store_cr0
+		GLOBAL	_load_cr0, _store_cr0,_start_app
 		GLOBAL	_memtest_sub
-		GLOBAL	_asm_inthandler20,_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
+		GLOBAL	_asm_inthandler20,_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c,_asm_inthandler0d
 		GLOBAL	_taskswitch4,_taskswitch3,_farjmp
 		GLOBAL  _farcall
 		EXTERN	_inthandler20,_inthandler21, _inthandler27, _inthandler2c
 		EXTERN	_cons_putchar
 		EXTERN	_hrb_api
+		EXTERN	_inthandler0d
 [SECTION .text]
 
 _asm_cons_putchar:
@@ -227,11 +228,73 @@ _asm_inthandler20:  ;timer
 	POP DS
 	POP ES
 	IRETD
+
+		
+	
+	
+_start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
+		PUSHAD		; 将32位寄存器全部保存起来
+		MOV		EAX,[ESP+36]	; 应用程序所用的eip
+		MOV		ECX,[ESP+40]	; 应用程序所用CS
+		MOV		EDX,[ESP+44]	; 应用程序所用ESP
+		MOV		EBX,[ESP+48]	; 应用程序所用DS/SS
+		MOV		EBP,[ESP+52]	; tss.esp0
+		MOV		[EBP  ],ESP		; OS的ESP
+		MOV		[EBP+4],SS		; OS的SS
+		MOV		ES,BX			;切换成应用程序的段
+		MOV		DS,BX
+		MOV		FS,BX
+		MOV		GS,BX
+		
+		OR		ECX,3			
+		OR		EBX,3			
+		PUSH	EBX				; 应用程序SS
+		PUSH	EDX				; 应用程序ESP
+		
+		PUSH	ECX				; 应用程序CS
+		PUSH	EAX				; 应用程序EIP
+		RETF
+;	应用程序结束后不会回到这里
+
+
 _asm_hrb_api:
 		STI
-		PUSHAD	; 用于寄存器保存
-		PUSHAD	; 用于向hrb_api传值得参数 
+		PUSH	DS
+		PUSH	ES
+		PUSHAD		
+		PUSHAD		;寄存器传参
+		MOV		AX,SS
+		MOV		DS,AX		
+		MOV		ES,AX
 		CALL	_hrb_api
+		CMP		EAX,0		; 
+		JNE		end_app
 		ADD		ESP,32
 		POPAD
+		POP		ES
+		POP		DS
+		IRETD
+end_app:
+		MOV		ESP,[EAX]
+		POPAD
+		RET					; cmd_app
+
+_asm_inthandler0d:
+		STI
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0d
+		CMP		EAX,0		
+		JNE		end_app		
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4			; INT 0x0d +4
 		IRETD

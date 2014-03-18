@@ -58,7 +58,7 @@ void timer_init(struct TIMER *timer, struct FIFO32 *fifo, unsigned char data)
 
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
-	int e, i, j;
+	int e;
 	
 	struct TIMER * t,*s;
 	timer->timeout = timeout + timerctl.count;
@@ -95,7 +95,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 
 
 void inthandler20(int*esp){
-	int i=0,j;
+	
 	char ts = 0;
 	io_out8(PIC0_OCW2,0x60);//把IRQ-00 信号接收完了的信息通知给PiC*/
 	
