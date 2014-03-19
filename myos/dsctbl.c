@@ -22,6 +22,7 @@ void init_gdtidt(void)
 	
 	load_idtr(0x7ff, 0x0026f800);
 	
+	set_gatedesc(idt + 0x0c, (int) asm_inthandler0c, 2 * 8, AR_INTGATE32);
 	set_gatedesc(idt + 0x0d, (int) asm_inthandler0d, 2 * 8, AR_INTGATE32);
 	
 	//设置键盘和鼠标,timer

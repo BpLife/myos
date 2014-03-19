@@ -29,6 +29,10 @@ void asm_inthandler2c(void);
 void asm_cons_putchar(void);
 void asm_hrb_api(void);
 void asm_inthandler0d(void);
+void asm_inthandler2c(void);
+void asm_inthandler0c(void);
+
+
 /* graphic.c */
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);

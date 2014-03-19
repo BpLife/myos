@@ -234,30 +234,45 @@ void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline)
 
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
-	int cs_base = *((int *) 0xfe8);
+	int ds_base = *((int *) 0xfe8);
 	struct TASK *task = task_now();
 	struct CONSOLE *cons = (struct CONSOLE *) *((int *) 0x0fec);
+	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+	struct SHEET *sht;
+	int *reg = &eax + 1;	
+		
+		/* reg[0] : EDI,   reg[1] : ESI,   reg[2] : EBP,   reg[3] : ESP */
+		/* reg[4] : EBX,   reg[5] : EDX,   reg[6] : ECX,   reg[7] : EAX */
+
 	if (edx == 1) {
 		cons_putchar(cons, eax & 0xff, 1);
 	} else if (edx == 2) {
-		cons_putstr0(cons, (char *) ebx + cs_base);
+		cons_putstr0(cons, (char *) ebx + ds_base);
 	} else if (edx == 3) {
-		cons_putstr1(cons, (char *) ebx + cs_base, ecx);
+		cons_putstr1(cons, (char *) ebx + ds_base, ecx);
 	} else if (edx == 4) {
 		return &(task->tss.esp0);
+	} else if (edx == 5) {
+		sht = sheet_alloc(shtctl);
+		sheet_setbuf(sht, (char *) ebx + ds_base, esi, edi, eax);
+		make_window8((char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
+		sheet_slide(sht, 100, 50);
+		sheet_updown(sht, 3);	
+		reg[7] = (int) sht;
 	}
 	return 0;
 }
 int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 {
+
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	struct FILEINFO *finfo;
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
 	char name[18], *p, *q;
 	struct TASK *task = task_now();
-	int i;
+	int i, segsiz, datsiz, esp, dathrb;
 
-		/* 根据命令生成文件名 */
+	/* 根据命令生成文件名 */
 	for (i = 0; i < 13; i++) {
 		if (cmdline[i] <= ' ') {
 			break;
@@ -265,6 +280,7 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 		name[i] = cmdline[i];
 	}
 	name[i] = 0; /* 暂且将文件名的后面置为0 */
+	
 
 	/* 寻找文件 */
 	finfo = file_search(name, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
@@ -279,24 +295,28 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	}
 
 	if (finfo != 0) {
-		/* 找到文件的情况 */
+	
+	
 		p = (char *) memman_alloc_4k(memman, finfo->size);
-		q = (char *) memman_alloc_4k(memman, 64 * 1024);
-		*((int *) 0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
-		set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
-		set_segmdesc(gdt + 1004, 64 * 1024 - 1,   (int) q, AR_DATA32_RW + 0x60);
-		if (finfo->size >= 8 && strncmp(p + 4, "Hari", 4) == 0) {
-			p[0] = 0xe8;
-			p[1] = 0x16;
-			p[2] = 0x00;
-			p[3] = 0x00;
-			p[4] = 0x00;
-			p[5] = 0xcb;
+		if (finfo->size >= 36 && strncmp(p + 4, "Hari", 4) == 0 && *p == 0x00) {
+			segsiz = *((int *) (p + 0x0000));
+			esp    = *((int *) (p + 0x000c));
+			datsiz = *((int *) (p + 0x0010));
+			dathrb = *((int *) (p + 0x0014));
+			q = (char *) memman_alloc_4k(memman, segsiz);
+			*((int *) 0xfe8) = (int) q;
+			set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
+			set_segmdesc(gdt + 1004, segsiz - 1,      (int) q, AR_DATA32_RW + 0x60);
+			for (i = 0; i < datsiz; i++) {
+				q[esp + i] = p[dathrb + i];
+			}
+			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			memman_free_4k(memman, (int) q, segsiz);
+		} else {
+			cons_putstr0(cons, ".hrb file format error.\n");
 		}
-		start_app(0, 1003 * 8, 64 * 1024, 1004 * 8, &(task->tss.esp0));
 		memman_free_4k(memman, (int) p, finfo->size);
-		memman_free_4k(memman, (int) q, 64 * 1024);
 		cons_newline(cons);
 		return 1;
 	}
@@ -323,10 +343,26 @@ void cons_putstr1(struct CONSOLE *cons, char *s, int l)
 }
 
 
+
+
 int *inthandler0d(int *esp)
 {
 	struct CONSOLE *cons = (struct CONSOLE *) *((int *) 0x0fec);
 	struct TASK *task = task_now();
+	char s[30];
 	cons_putstr0(cons, "\nINT 0D :\n General Protected Exception.\n");
+	sprintf(s, "EIP = %08X\n", esp[11]);
+	cons_putstr0(cons, s);
+	return &(task->tss.esp0);	
+}
+
+int *inthandler0c(int *esp)
+{
+	struct CONSOLE *cons = (struct CONSOLE *) *((int *) 0x0fec);
+	struct TASK *task = task_now();
+	char s[30];
+	cons_putstr0(cons, "\nINT 0C :\n Stack Exception.\n");
+	sprintf(s, "EIP = %08X\n", esp[11]);
+	cons_putstr0(cons, s);
 	return &(task->tss.esp0);	
 }

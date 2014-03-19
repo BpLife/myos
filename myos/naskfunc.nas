@@ -5,7 +5,7 @@
 [INSTRSET "i486p"]				; 486の命令まで使いたいという記述
 [BITS 32]						; 32ビットモード用の機械語を作らせる
 [FILE "naskfunc.nas"]			; ソースファイル名情報
-		GLOBAL	_asm_cons_putchar,_asm_hrb_api
+		GLOBAL	_asm_cons_putchar,_asm_hrb_api,
 		GLOBAL	_io_hlt, _io_cli, _io_sti, _io_stihlt
 		GLOBAL	_io_in8,  _io_in16,  _io_in32
 		GLOBAL	_io_out8, _io_out16, _io_out32
@@ -13,13 +13,15 @@
 		GLOBAL	_load_gdtr, _load_idtr,_load_tr
 		GLOBAL	_load_cr0, _store_cr0,_start_app
 		GLOBAL	_memtest_sub
-		GLOBAL	_asm_inthandler20,_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c,_asm_inthandler0d
+		GLOBAL	_asm_inthandler0d,_asm_inthandler0c,_asm_inthandler20,_asm_inthandler21, _asm_inthandler27
+		GLOBAL	_asm_inthandler2c
 		GLOBAL	_taskswitch4,_taskswitch3,_farjmp
 		GLOBAL  _farcall
 		EXTERN	_inthandler20,_inthandler21, _inthandler27, _inthandler2c
 		EXTERN	_cons_putchar
 		EXTERN	_hrb_api
 		EXTERN	_inthandler0d
+		EXTERN	_inthandler0c
 [SECTION .text]
 
 _asm_cons_putchar:
@@ -115,6 +117,22 @@ _load_idtr:		; void load_idtr(int limit, int addr);
 _load_tr:		;void load_tr(int tr);
 		LTR		[esp+4]
 		RET
+_asm_inthandler2c:
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler2c
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+		
 _asm_inthandler21:
 		PUSH	ES
 		PUSH	DS
@@ -297,4 +315,24 @@ _asm_inthandler0d:
 		POP		DS
 		POP		ES
 		ADD		ESP,4			; INT 0x0d +4
+		IRETD
+		
+_asm_inthandler0c:
+		STI
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0c
+		CMP		EAX,0
+		JNE		_asm_end_app
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4			; INT 0x0c 
 		IRETD

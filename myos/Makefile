@@ -48,11 +48,27 @@ bootpack.hrb : bootpack.bim Makefile
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	copy /B asmhead.bin+bootpack.hrb haribote.sys
 	
-hlt.hrb : hlt.nas Makefile
-	$(NASK) hlt.nas hlt.hrb hlt.lst
+a.bim : a.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:a.bim map:a.map a.obj a_nask.obj
+
+a.hrb : a.bim Makefile
+	$(BIM2HRB) a.bim a.hrb 0
+	
+winhelo.bim : winhelo.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:winhelo.bim stack:1k map:winhelo.map \
+		winhelo.obj a_nask.obj
+
+winhelo.hrb : winhelo.bim Makefile
+	$(BIM2HRB) winhelo.bim winhelo.hrb 0
 	
 crack2.hrb: crack2.nas Makefile
 	$(NASK) crack2.nas crack2.hrb crack2.lst
+	
+hlt.bim : hlt.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:hlt.bim stack:1k map:hlt.map hlt.obj
+
+hlt.hrb :hlt.bim Makefile
+	$(BIM2HRB) hlt.bim hlt.hrb 0
 haribote.img : ipl10.bin haribote.sys hlt.hrb Makefile
 	$(EDIMG)   imgin:../z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
@@ -60,12 +76,13 @@ haribote.img : ipl10.bin haribote.sys hlt.hrb Makefile
 		copy from:ipl10.nas to:@: \
 		copy from:make.bat to:@: \
 		copy from:hlt.hrb to:@: \
-		copy from:crack2.hrb to:@: \
+		copy from:winhelo.hrb to:@: \
+		copy from:a.hrb to:@: \
 		imgout:haribote.img
 
 # ˆê”Ê‹K‘¥
 
-%.gas : %.c Makefile
+%.gas : %.c bootpack.h Makefile
 	$(CC1) -o $*.gas $*.c
 
 %.nas : %.gas Makefile
@@ -92,10 +109,10 @@ clean :
 	-$(DEL) *.bin
 	-$(DEL) *.lst
 	-$(DEL) *.obj
-	-$(DEL) bootpack.map
-	-$(DEL) bootpack.bim
-	-$(DEL) bootpack.hrb
-	-$(DEL) haribote.sys
+	-$(DEL) *.map
+	-$(DEL) *.bim
+	-$(DEL) *.hrb
+	-$(DEL) *.sys
 
 src_only :
 	$(MAKE) clean
