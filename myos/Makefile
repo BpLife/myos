@@ -58,7 +58,7 @@ winhelo.bim : winhelo.obj a_nask.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:winhelo.bim stack:1k map:winhelo.map \
 		winhelo.obj a_nask.obj
 
-winhelo.hrb : winhelo.bim Makefile
+winhelo.hrb : winhelo.bim a_nask.obj Makefile
 	$(BIM2HRB) winhelo.bim winhelo.hrb 0
 	
 crack2.hrb: crack2.nas Makefile
@@ -69,7 +69,7 @@ hlt.bim : hlt.obj Makefile
 
 hlt.hrb :hlt.bim Makefile
 	$(BIM2HRB) hlt.bim hlt.hrb 0
-haribote.img : ipl10.bin haribote.sys hlt.hrb Makefile
+haribote.img : ipl10.bin haribote.sys hlt.hrb winhelo.hrb a.hrb Makefile
 	$(EDIMG)   imgin:../z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
