@@ -6,9 +6,10 @@
 		GLOBAL	_api_putchar
 		GLOBAL	_api_putstr0
 		GLOBAL	_api_end
-		GLOBAL	_api_openwin,_api_putstrwin,_api_boxfilwin
-		
-
+		GLOBAL	_api_openwin,_api_putstrwin,_api_boxfilwin,_api_initmalloc,_api_malloc,_api_free
+		GLOBAL	_api_point
+		GLOBAL	_api_refreshwin
+		GLOBAL	_api_linewin
 [SECTION .text]
 
 _api_putchar:	; void api_putchar(int c);
@@ -70,6 +71,87 @@ _api_boxfilwin:	; void api_boxfilwin(int win, int x0, int y0, int x1, int y1, in
 		PUSH	EBP
 		PUSH	EBX
 		MOV		EDX,7
+		MOV		EBX,[ESP+20]	; win
+		MOV		EAX,[ESP+24]	; x0
+		MOV		ECX,[ESP+28]	; y0
+		MOV		ESI,[ESP+32]	; x1
+		MOV		EDI,[ESP+36]	; y1
+		MOV		EBP,[ESP+40]	; col
+		INT		0x40
+		POP		EBX
+		POP		EBP
+		POP		ESI
+		POP		EDI
+		RET
+		
+_api_initmalloc:	; void api_initmalloc(void);
+		PUSH	EBX
+		MOV		EDX,8
+		MOV		EBX,[CS:0x0020]		; malloc椞堟偺斣抧
+		MOV		EAX,EBX
+		ADD		EAX,32*1024			; 32KB傪懌偡
+		MOV		ECX,[CS:0x0000]		; 僨乕僞僙僌儊儞僩偺戝偒偝
+		SUB		ECX,EAX
+		INT		0x40
+		POP		EBX
+		RET
+
+_api_malloc:		; char *api_malloc(int size);
+		PUSH	EBX
+		MOV		EDX,9
+		MOV		EBX,[CS:0x0020]
+		MOV		ECX,[ESP+8]			; size
+		INT		0x40
+		POP		EBX
+		RET
+
+_api_free:			; void api_free(char *addr, int size);
+		PUSH	EBX
+		MOV		EDX,10
+		MOV		EBX,[CS:0x0020]
+		MOV		EAX,[ESP+ 8]		; addr
+		MOV		ECX,[ESP+12]		; size
+		INT		0x40
+		POP		EBX
+		RET
+
+_api_point:		; void api_point(int win, int x, int y, int col);
+		PUSH	EDI
+		PUSH	ESI
+		PUSH	EBX
+		MOV		EDX,11
+		MOV		EBX,[ESP+16]	; win
+		MOV		ESI,[ESP+20]	; x
+		MOV		EDI,[ESP+24]	; y
+		MOV		EAX,[ESP+28]	; col
+		INT		0x40
+		POP		EBX
+		POP		ESI
+		POP		EDI
+		RET
+		
+_api_refreshwin:	; void api_refreshwin(int win, int x0, int y0, int x1, int y1);
+		PUSH	EDI
+		PUSH	ESI
+		PUSH	EBX
+		MOV		EDX,12
+		MOV		EBX,[ESP+16]	; win
+		MOV		EAX,[ESP+20]	; x0
+		MOV		ECX,[ESP+24]	; y0
+		MOV		ESI,[ESP+28]	; x1
+		MOV		EDI,[ESP+32]	; y1
+		INT		0x40
+		POP		EBX
+		POP		ESI
+		POP		EDI
+		RET
+
+_api_linewin:		; void api_linewin(int win, int x0, int y0, int x1, int y1, int col);
+		PUSH	EDI
+		PUSH	ESI
+		PUSH	EBP
+		PUSH	EBX
+		MOV		EDX,13
 		MOV		EBX,[ESP+20]	; win
 		MOV		EAX,[ESP+24]	; x0
 		MOV		ECX,[ESP+28]	; y0
